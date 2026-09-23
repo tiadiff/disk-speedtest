@@ -1,9 +1,12 @@
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,13 +14,42 @@ using DiskTester.Properties;
 
 namespace DiskTester
 {
-    public class TestResult
+    public class TestResult : INotifyPropertyChanged
     {
-        public string Date { get; set; }
-        public string Drive { get; set; }
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        private int _rank;
+        public int Rank
+        {
+            get => _rank;
+            set { _rank = value; OnPropertyChanged(); OnPropertyChanged(nameof(RankDisplay)); }
+        }
+
+        [JsonIgnore]
+        public string RankDisplay => Rank switch
+        {
+            0 => "-",
+            1 => "🥇 1",
+            2 => "🥈 2",
+            3 => "🥉 3",
+            _ => Rank.ToString()
+        };
+
+        public double RawWriteSpeed { get; set; }
+        public double RawReadSpeed { get; set; }
+
+        [JsonIgnore]
+        public double Score => RawWriteSpeed + RawReadSpeed;
+
+        public string Date { get; set; } = "";
+        public string Drive { get; set; } = "";
         public int SizeMB { get; set; }
-        public string WriteSpeed { get; set; }
-        public string ReadSpeed { get; set; }
+        public string WriteSpeed { get; set; } = "";
+        public string ReadSpeed { get; set; } = "";
     }
 
     public partial class MainWindow : Window
@@ -50,12 +82,22 @@ namespace DiskTester
                         {
                             ResultsHistory.Add(result);
                         }
+                        UpdateRankings();
                     }
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load history from settings: {ex.Message}");
+            }
+        }
+
+        private void UpdateRankings()
+        {
+            var sorted = ResultsHistory.OrderByDescending(r => r.Score).ToList();
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                sorted[i].Rank = i + 1;
             }
         }
 
@@ -261,11 +303,14 @@ namespace DiskTester
                 Drive = drive,
                 SizeMB = sizeMb,
                 WriteSpeed = $"{writeSpeed:F2} MB/s",
-                ReadSpeed = $"{readSpeed:F2} MB/s"
+                ReadSpeed = $"{readSpeed:F2} MB/s",
+                RawWriteSpeed = writeSpeed,
+                RawReadSpeed = readSpeed
             };
 
             // Update UI
             ResultsHistory.Insert(0, result);
+            UpdateRankings();
 
             // Save to Settings
             try

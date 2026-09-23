@@ -64,7 +64,16 @@
                 </StackPanel>
             </Grid>
 
-            <DataGrid Grid.Row="1" x:Name="ResultsDataGrid" AutoGenerateColumns="True" IsReadOnly="True" HeadersVisibility="Column" Background="Transparent" />
+            <DataGrid Grid.Row="1" x:Name="ResultsDataGrid" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" Background="Transparent">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Rank" Binding="{Binding RankDisplay}" FontWeight="Bold" />
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date}" />
+                    <DataGridTextColumn Header="Drive" Binding="{Binding Drive}" />
+                    <DataGridTextColumn Header="Size (MB)" Binding="{Binding SizeMB}" />
+                    <DataGridTextColumn Header="Write" Binding="{Binding WriteSpeed}" />
+                    <DataGridTextColumn Header="Read" Binding="{Binding ReadSpeed}" />
+                </DataGrid.Columns>
+            </DataGrid>
         </Grid>
 
         <!-- Action Buttons -->
