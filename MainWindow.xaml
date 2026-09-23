@@ -1,0 +1,64 @@
+<Window x:Class="DiskTester.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}"
+        Title="Disk Speed Tester" Height="450" Width="400" WindowStartupLocation="CenterScreen">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Disk Speed Tester" FontSize="24" FontWeight="Bold" Margin="0,0,0,20" HorizontalAlignment="Center"/>
+
+        <!-- Input Section -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,20">
+            <TextBox x:Name="TargetPathTextBox"
+                     materialDesign:HintAssist.Hint="Target Path (e.g., C:\)"
+                     Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                     Margin="0,0,0,15" Text="C:\" />
+            
+            <TextBox x:Name="FileSizeTextBox"
+                     materialDesign:HintAssist.Hint="File Size in MB (e.g., 1024)"
+                     Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                     Margin="0,0,0,20" Text="1024" />
+        </StackPanel>
+
+        <!-- Progress and Status Section -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,20">
+            <TextBlock x:Name="StatusTextBlock" Text="Ready to test" HorizontalAlignment="Center" Margin="0,0,0,10" FontSize="16" />
+            <ProgressBar x:Name="TestProgressBar" Minimum="0" Maximum="100" Value="0" Height="10" />
+        </StackPanel>
+
+        <!-- Results Section -->
+        <Grid Grid.Row="3" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                <TextBlock Text="Write Speed" Foreground="Gray" HorizontalAlignment="Center" />
+                <TextBlock x:Name="WriteSpeedTextBlock" Text="--- MB/s" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                <TextBlock Text="Read Speed" Foreground="Gray" HorizontalAlignment="Center" />
+                <TextBlock x:Name="ReadSpeedTextBlock" Text="--- MB/s" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Start Button -->
+        <Button Grid.Row="4" x:Name="StartButton" Content="START TEST" Height="40" Click="StartButton_Click" />
+    </Grid>
+</Window>
