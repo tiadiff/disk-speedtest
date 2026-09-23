@@ -9,7 +9,7 @@
         TextOptions.TextRenderingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="{DynamicResource MaterialDesignFont}"
-        Title="Disk Speed Tester" Height="450" Width="400" WindowStartupLocation="CenterScreen">
+        Title="Disk Speed Tester" Height="650" Width="600" WindowStartupLocation="CenterScreen">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -23,10 +23,10 @@
 
         <!-- Input Section -->
         <StackPanel Grid.Row="1" Margin="0,0,0,20">
-            <TextBox x:Name="TargetPathTextBox"
-                     materialDesign:HintAssist.Hint="Target Path (e.g., C:\)"
-                     Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                     Margin="0,0,0,15" />
+            <ComboBox x:Name="DriveComboBox"
+                      materialDesign:HintAssist.Hint="Select Drive to Test"
+                      Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                      Margin="0,0,0,15" />
             
             <TextBox x:Name="FileSizeTextBox"
                      materialDesign:HintAssist.Hint="File Size in MB (e.g., 1024)"
@@ -41,21 +41,30 @@
         </StackPanel>
 
         <!-- Results Section -->
-        <Grid Grid.Row="3" VerticalAlignment="Center">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="3" VerticalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
             
-            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                <TextBlock Text="Write Speed" Foreground="Gray" HorizontalAlignment="Center" />
-                <TextBlock x:Name="WriteSpeedTextBlock" Text="--- MB/s" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
-            </StackPanel>
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                    <TextBlock Text="Write Speed" Foreground="Gray" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="WriteSpeedTextBlock" Text="--- MB/s" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                </StackPanel>
 
-            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                <TextBlock Text="Read Speed" Foreground="Gray" HorizontalAlignment="Center" />
-                <TextBlock x:Name="ReadSpeedTextBlock" Text="--- MB/s" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
-            </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                    <TextBlock Text="Read Speed" Foreground="Gray" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="ReadSpeedTextBlock" Text="--- MB/s" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+
+            <DataGrid Grid.Row="1" x:Name="ResultsDataGrid" AutoGenerateColumns="True" IsReadOnly="True" HeadersVisibility="Column" Background="Transparent" />
         </Grid>
 
         <!-- Start Button -->
