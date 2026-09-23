@@ -26,7 +26,7 @@
             <TextBox x:Name="TargetPathTextBox"
                      materialDesign:HintAssist.Hint="Target Path (e.g., C:\)"
                      Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                     Margin="0,0,0,15" Text="C:\" />
+                     Margin="0,0,0,15" />
             
             <TextBox x:Name="FileSizeTextBox"
                      materialDesign:HintAssist.Hint="File Size in MB (e.g., 1024)"

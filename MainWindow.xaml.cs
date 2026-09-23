@@ -11,6 +11,7 @@ namespace DiskTester
         public MainWindow()
         {
             InitializeComponent();
+            TargetPathTextBox.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         }
 
         private async void StartButton_Click(object sender, RoutedEventArgs e)
@@ -58,73 +59,84 @@ namespace DiskTester
             int bufferSize = 1024 * 1024; // 1 MB buffer
             string testFilePath = Path.Combine(targetPath, "disk_speed_test_gui.tmp");
             
-            byte[] buffer = new byte[bufferSize];
-            new Random().NextBytes(buffer);
-
-            // WRITE TEST
-            StatusTextBlock.Text = "Testing Write Speed...";
-            TestProgressBar.Value = 0;
-            
-            Stopwatch sw = Stopwatch.StartNew();
-            
-            await Task.Run(() =>
+            try
             {
-                using (FileStream fs = new FileStream(testFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.WriteThrough))
-                {
-                    long bytesWritten = 0;
-                    while (bytesWritten < fileSizeBytes)
-                    {
-                        int toWrite = (int)Math.Min(bufferSize, fileSizeBytes - bytesWritten);
-                        fs.Write(buffer, 0, toWrite);
-                        bytesWritten += toWrite;
-                        
-                        // Update progress
-                        int progress = (int)((bytesWritten * 100) / fileSizeBytes);
-                        Dispatcher.Invoke(() => TestProgressBar.Value = progress);
-                    }
-                }
-            });
+                byte[] buffer = new byte[bufferSize];
+                new Random().NextBytes(buffer);
 
-            sw.Stop();
-            double writeSpeed = sizeMb / sw.Elapsed.TotalSeconds;
-            WriteSpeedTextBlock.Text = $"{writeSpeed:F2} MB/s";
-
-            // READ TEST
-            StatusTextBlock.Text = "Testing Read Speed...";
-            TestProgressBar.Value = 0;
-            sw.Restart();
-
-            await Task.Run(() =>
-            {
-                using (FileStream fs = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.None, bufferSize, FileOptions.SequentialScan))
-                {
-                    long bytesReadTotal = 0;
-                    int bytesRead;
-                    while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        bytesReadTotal += bytesRead;
-                        
-                        // Update progress
-                        int progress = (int)((bytesReadTotal * 100) / fileSizeBytes);
-                        Dispatcher.Invoke(() => TestProgressBar.Value = progress);
-                    }
-                }
-            });
-
-            sw.Stop();
-            double readSpeed = sizeMb / sw.Elapsed.TotalSeconds;
-            ReadSpeedTextBlock.Text = $"{readSpeed:F2} MB/s";
-
-            StatusTextBlock.Text = "Test Completed";
-            TestProgressBar.Value = 100;
-
-            // CLEANUP
-            if (File.Exists(testFilePath))
-            {
-                StatusTextBlock.Text = "Cleaning up...";
-                await Task.Run(() => File.Delete(testFilePath));
-                StatusTextBlock.Text = "Ready";
+                // WRITE TEST
+                StatusTextBlock.Text = "Testing Write Speed...";
                 TestProgressBar.Value = 0;
+                
+                Stopwatch sw = Stopwatch.StartNew();
+                
+                await Task.Run(() =>
+                {
+                    using (FileStream fs = new FileStream(testFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.WriteThrough))
+                    {
+                        long bytesWritten = 0;
+                        while (bytesWritten < fileSizeBytes)
+                        {
+                            int toWrite = (int)Math.Min(bufferSize, fileSizeBytes - bytesWritten);
+                            fs.Write(buffer, 0, toWrite);
+                            bytesWritten += toWrite;
+                            
+                            // Update progress
+                            int progress = (int)((bytesWritten * 100) / fileSizeBytes);
+                            Dispatcher.Invoke(() => TestProgressBar.Value = progress);
+                        }
+                    }
+                });
+
+                sw.Stop();
+                double writeSpeed = sizeMb / sw.Elapsed.TotalSeconds;
+                WriteSpeedTextBlock.Text = $"{writeSpeed:F2} MB/s";
+
+                // READ TEST
+                StatusTextBlock.Text = "Testing Read Speed...";
+                TestProgressBar.Value = 0;
+                sw.Restart();
+
+                await Task.Run(() =>
+                {
+                    using (FileStream fs = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.None, bufferSize, FileOptions.SequentialScan))
+                    {
+                        long bytesReadTotal = 0;
+                        int bytesRead;
+                        while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            bytesReadTotal += bytesRead;
+                            
+                            // Update progress
+                            int progress = (int)((bytesReadTotal * 100) / fileSizeBytes);
+                            Dispatcher.Invoke(() => TestProgressBar.Value = progress);
+                        }
+                    }
+                });
+
+                sw.Stop();
+                double readSpeed = sizeMb / sw.Elapsed.TotalSeconds;
+                ReadSpeedTextBlock.Text = $"{readSpeed:F2} MB/s";
+
+                StatusTextBlock.Text = "Test Completed";
+                TestProgressBar.Value = 100;
+            }
+            finally
+            {
+                // CLEANUP
+                if (File.Exists(testFilePath))
+                {
+                    StatusTextBlock.Text = "Cleaning up...";
+                    await Task.Run(() => 
+                    {
+                        try { File.Delete(testFilePath); } catch { /* Ignore if it fails */ }
+                    });
+                    if (StatusTextBlock.Text == "Cleaning up...") 
+                    {
+                        StatusTextBlock.Text = "Ready";
+                        TestProgressBar.Value = 0;
+                    }
+                }
             }
         }
     }
