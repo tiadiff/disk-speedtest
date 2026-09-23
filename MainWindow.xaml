@@ -67,7 +67,15 @@
             <DataGrid Grid.Row="1" x:Name="ResultsDataGrid" AutoGenerateColumns="True" IsReadOnly="True" HeadersVisibility="Column" Background="Transparent" />
         </Grid>
 
-        <!-- Start Button -->
-        <Button Grid.Row="4" x:Name="StartButton" Content="START TEST" Height="40" Click="StartButton_Click" />
+        <!-- Action Buttons -->
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Name="StartButton" Content="START TEST" Height="40" Click="StartButton_Click" />
+            <Button Grid.Column="2" x:Name="CancelButton" Content="CANCEL" Height="40" Click="CancelButton_Click" IsEnabled="False" Style="{StaticResource MaterialDesignOutlinedButton}" />
+        </Grid>
     </Grid>
 </Window>

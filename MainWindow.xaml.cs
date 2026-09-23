@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -20,6 +21,7 @@ namespace DiskTester
     public partial class MainWindow : Window
     {
         public ObservableCollection<TestResult> ResultsHistory { get; set; }
+        private CancellationTokenSource? _cancellationTokenSource;
 
         public MainWindow()
         {
@@ -29,6 +31,39 @@ namespace DiskTester
             ResultsDataGrid.ItemsSource = ResultsHistory;
 
             LoadDrives();
+            LoadHistory();
+        }
+
+        private void LoadHistory()
+        {
+            try
+            {
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                string csvFile = Path.Combine(desktopPath, "DiskSpeedResults.csv");
+                if (File.Exists(csvFile))
+                {
+                    var lines = File.ReadAllLines(csvFile);
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        var parts = lines[i].Split(',');
+                        if (parts.Length == 5)
+                        {
+                            ResultsHistory.Insert(0, new TestResult
+                            {
+                                Date = parts[0],
+                                Drive = parts[1],
+                                SizeMB = int.TryParse(parts[2], out int s) ? s : 0,
+                                WriteSpeed = parts[3] + " MB/s",
+                                ReadSpeed = parts[4] + " MB/s"
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load history: {ex.Message}");
+            }
         }
 
         private void LoadDrives()
@@ -71,14 +106,22 @@ namespace DiskTester
             }
 
             StartButton.IsEnabled = false;
+            CancelButton.IsEnabled = true;
             DriveComboBox.IsEnabled = false;
             FileSizeTextBox.IsEnabled = false;
             WriteSpeedTextBlock.Text = "Testing...";
             ReadSpeedTextBlock.Text = "--- MB/s";
             
+            _cancellationTokenSource = new CancellationTokenSource();
+            
             try
             {
-                await RunBenchmarkAsync(targetPath, sizeMb);
+                await RunBenchmarkAsync(targetPath, sizeMb, _cancellationTokenSource.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                StatusTextBlock.Text = "Test Cancelled.";
+                TestProgressBar.Value = 0;
             }
             catch (Exception ex)
             {
@@ -89,12 +132,22 @@ namespace DiskTester
             finally
             {
                 StartButton.IsEnabled = true;
+                CancelButton.IsEnabled = false;
                 DriveComboBox.IsEnabled = true;
                 FileSizeTextBox.IsEnabled = true;
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
             }
         }
 
-        private async Task RunBenchmarkAsync(string targetPath, int sizeMb)
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            _cancellationTokenSource?.Cancel();
+            CancelButton.IsEnabled = false;
+            StatusTextBlock.Text = "Cancelling...";
+        }
+
+        private async Task RunBenchmarkAsync(string targetPath, int sizeMb, CancellationToken token)
         {
             long fileSizeBytes = (long)sizeMb * 1024 * 1024;
             int bufferSize = 1024 * 1024; // 1 MB buffer
@@ -124,6 +177,7 @@ namespace DiskTester
                             long bytesWritten = 0;
                             while (bytesWritten < fileSizeBytes)
                             {
+                                token.ThrowIfCancellationRequested();
                                 int toWrite = (int)Math.Min(bufferSize, fileSizeBytes - bytesWritten);
                                 fs.Write(buffer, 0, toWrite);
                                 bytesWritten += toWrite;
@@ -133,7 +187,7 @@ namespace DiskTester
                                 Dispatcher.Invoke(() => TestProgressBar.Value = progress);
                             }
                         }
-                    });
+                    }, token);
 
                     sw.Stop();
                     double writeSpeed = sizeMb / sw.Elapsed.TotalSeconds;
@@ -153,6 +207,7 @@ namespace DiskTester
                             int bytesRead;
                             while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
                             {
+                                token.ThrowIfCancellationRequested();
                                 bytesReadTotal += bytesRead;
                                 
                                 // Update progress
@@ -160,7 +215,7 @@ namespace DiskTester
                                 Dispatcher.Invoke(() => TestProgressBar.Value = progress);
                             }
                         }
-                    });
+                    }, token);
 
                     sw.Stop();
                     double readSpeed = sizeMb / sw.Elapsed.TotalSeconds;
