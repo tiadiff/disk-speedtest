@@ -3,9 +3,11 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using DiskTester.Properties;
 
 namespace DiskTester
 {
@@ -38,31 +40,22 @@ namespace DiskTester
         {
             try
             {
-                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string csvFile = Path.Combine(desktopPath, "DiskSpeedResults.csv");
-                if (File.Exists(csvFile))
+                string json = Settings.Default.HistoryJson;
+                if (!string.IsNullOrWhiteSpace(json))
                 {
-                    var lines = File.ReadAllLines(csvFile);
-                    for (int i = 1; i < lines.Length; i++)
+                    var savedResults = JsonSerializer.Deserialize<TestResult[]>(json);
+                    if (savedResults != null)
                     {
-                        var parts = lines[i].Split(',');
-                        if (parts.Length == 5)
+                        foreach (var result in savedResults)
                         {
-                            ResultsHistory.Insert(0, new TestResult
-                            {
-                                Date = parts[0],
-                                Drive = parts[1],
-                                SizeMB = int.TryParse(parts[2], out int s) ? s : 0,
-                                WriteSpeed = parts[3] + " MB/s",
-                                ReadSpeed = parts[4] + " MB/s"
-                            });
+                            ResultsHistory.Add(result);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load history: {ex.Message}");
+                Debug.WriteLine($"Failed to load history from settings: {ex.Message}");
             }
         }
 
@@ -274,25 +267,16 @@ namespace DiskTester
             // Update UI
             ResultsHistory.Insert(0, result);
 
-            // Save to CSV on Desktop
+            // Save to Settings
             try
             {
-                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string csvFile = Path.Combine(desktopPath, "DiskSpeedResults.csv");
-                
-                bool fileExists = File.Exists(csvFile);
-                using (StreamWriter sw = new StreamWriter(csvFile, true))
-                {
-                    if (!fileExists)
-                    {
-                        sw.WriteLine("Date,Drive,Size(MB),Write Speed(MB/s),Read Speed(MB/s)");
-                    }
-                    sw.WriteLine($"{result.Date},{result.Drive},{result.SizeMB},{writeSpeed:F2},{readSpeed:F2}");
-                }
+                string json = JsonSerializer.Serialize(ResultsHistory);
+                Settings.Default.HistoryJson = json;
+                Settings.Default.Save();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save results to CSV: {ex.Message}");
+                MessageBox.Show($"Failed to save results to settings: {ex.Message}");
             }
         }
     }
