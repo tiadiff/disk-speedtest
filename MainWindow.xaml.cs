@@ -100,73 +100,91 @@ namespace DiskTester
             int bufferSize = 1024 * 1024; // 1 MB buffer
             string testFilePath = Path.Combine(targetPath, "disk_speed_test_gui.tmp");
             
-            double writeSpeed = 0;
-            double readSpeed = 0;
+            double totalWriteSpeed = 0;
+            double totalReadSpeed = 0;
+            int passes = 5;
 
             try
             {
                 byte[] buffer = new byte[bufferSize];
                 new Random().NextBytes(buffer);
 
-                // WRITE TEST
-                StatusTextBlock.Text = "Testing Write Speed...";
-                TestProgressBar.Value = 0;
-                
-                Stopwatch sw = Stopwatch.StartNew();
-                
-                await Task.Run(() =>
+                for (int pass = 1; pass <= passes; pass++)
                 {
-                    using (FileStream fs = new FileStream(testFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.WriteThrough))
+                    // WRITE TEST
+                    StatusTextBlock.Text = $"Testing Write Speed (Pass {pass}/{passes})...";
+                    TestProgressBar.Value = 0;
+                    
+                    Stopwatch sw = Stopwatch.StartNew();
+                    
+                    await Task.Run(() =>
                     {
-                        long bytesWritten = 0;
-                        while (bytesWritten < fileSizeBytes)
+                        using (FileStream fs = new FileStream(testFilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.WriteThrough))
                         {
-                            int toWrite = (int)Math.Min(bufferSize, fileSizeBytes - bytesWritten);
-                            fs.Write(buffer, 0, toWrite);
-                            bytesWritten += toWrite;
-                            
-                            // Update progress
-                            int progress = (int)((bytesWritten * 100) / fileSizeBytes);
-                            Dispatcher.Invoke(() => TestProgressBar.Value = progress);
+                            long bytesWritten = 0;
+                            while (bytesWritten < fileSizeBytes)
+                            {
+                                int toWrite = (int)Math.Min(bufferSize, fileSizeBytes - bytesWritten);
+                                fs.Write(buffer, 0, toWrite);
+                                bytesWritten += toWrite;
+                                
+                                // Update progress
+                                int progress = (int)((bytesWritten * 100) / fileSizeBytes);
+                                Dispatcher.Invoke(() => TestProgressBar.Value = progress);
+                            }
                         }
-                    }
-                });
+                    });
 
-                sw.Stop();
-                writeSpeed = sizeMb / sw.Elapsed.TotalSeconds;
-                WriteSpeedTextBlock.Text = $"{writeSpeed:F2} MB/s";
+                    sw.Stop();
+                    double writeSpeed = sizeMb / sw.Elapsed.TotalSeconds;
+                    totalWriteSpeed += writeSpeed;
+                    WriteSpeedTextBlock.Text = $"{(totalWriteSpeed / pass):F2} MB/s";
 
-                // READ TEST
-                StatusTextBlock.Text = "Testing Read Speed...";
-                TestProgressBar.Value = 0;
-                sw.Restart();
+                    // READ TEST
+                    StatusTextBlock.Text = $"Testing Read Speed (Pass {pass}/{passes})...";
+                    TestProgressBar.Value = 0;
+                    sw.Restart();
 
-                await Task.Run(() =>
-                {
-                    using (FileStream fs = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.None, bufferSize, FileOptions.SequentialScan))
+                    await Task.Run(() =>
                     {
-                        long bytesReadTotal = 0;
-                        int bytesRead;
-                        while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
+                        using (FileStream fs = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.None, bufferSize, FileOptions.SequentialScan))
                         {
-                            bytesReadTotal += bytesRead;
-                            
-                            // Update progress
-                            int progress = (int)((bytesReadTotal * 100) / fileSizeBytes);
-                            Dispatcher.Invoke(() => TestProgressBar.Value = progress);
+                            long bytesReadTotal = 0;
+                            int bytesRead;
+                            while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
+                            {
+                                bytesReadTotal += bytesRead;
+                                
+                                // Update progress
+                                int progress = (int)((bytesReadTotal * 100) / fileSizeBytes);
+                                Dispatcher.Invoke(() => TestProgressBar.Value = progress);
+                            }
                         }
-                    }
-                });
+                    });
 
-                sw.Stop();
-                readSpeed = sizeMb / sw.Elapsed.TotalSeconds;
-                ReadSpeedTextBlock.Text = $"{readSpeed:F2} MB/s";
+                    sw.Stop();
+                    double readSpeed = sizeMb / sw.Elapsed.TotalSeconds;
+                    totalReadSpeed += readSpeed;
+                    ReadSpeedTextBlock.Text = $"{(totalReadSpeed / pass):F2} MB/s";
+                    
+                    // Delete the file between passes to ensure fresh allocation and prevent cache hits
+                    await Task.Run(() => 
+                    {
+                        try { File.Delete(testFilePath); } catch { }
+                    });
+                }
 
-                StatusTextBlock.Text = "Test Completed";
+                double avgWriteSpeed = totalWriteSpeed / passes;
+                double avgReadSpeed = totalReadSpeed / passes;
+
+                WriteSpeedTextBlock.Text = $"{avgWriteSpeed:F2} MB/s";
+                ReadSpeedTextBlock.Text = $"{avgReadSpeed:F2} MB/s";
+
+                StatusTextBlock.Text = "Test Completed (Averaged over 5 passes)";
                 TestProgressBar.Value = 100;
 
                 // Log Result
-                LogResult(targetPath, sizeMb, writeSpeed, readSpeed);
+                LogResult(targetPath, sizeMb, avgWriteSpeed, avgReadSpeed);
             }
             finally
             {
