@@ -1,6 +1,6 @@
 # DiskTester
 
-A simple C# console application to test the read and write speeds of SSDs, HDDs, or USB drives.
+A simple C# application to test the read and write speeds of SSDs, HDDs, or USB drives.
 
 ## Features
 - Test sequential write speed
